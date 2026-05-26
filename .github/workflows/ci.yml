@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ 강지훈/main ]
+  push:
+    branches: [ 강지훈/main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jihoonkang
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 21 설정
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Gradle 권한 부여
+        run: chmod +x ./gradlew
+
+      - name: application.yml 생성
+        env:
+          APP_YML: ${{ secrets.APPLICATION_YML }}
+        run: |
+          mkdir -p src/main/resources
+          printf '%s' "$APP_YML" > src/main/resources/application.yml
+
+      - name: 테스트 실행
+        run: ./gradlew test
+
+      - name: 빌드
+        run: ./gradlew build -x test

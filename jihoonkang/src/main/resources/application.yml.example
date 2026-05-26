@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: blog
+  datasource:
+    url: jdbc:h2:mem:blog
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+    try-it-out-enabled: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+  api-docs:
+    path: /v3/api-docs
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  packages-to-scan: com.example.blog
+
+jwt:
+  secret: ${JWT_SECRET:your-secret-here}
+  access-expiration: 1800000
+  refresh-expiration: 1209600000
+  cookie:
+    secure: false
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID:}
+  client-secret: ${KAKAO_CLIENT_SECRET:}
+  redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/oauth/kakao/callback}
+  authorize-uri: https://kauth.kakao.com/oauth/authorize
+  token-uri: https://kauth.kakao.com/oauth/token
+  user-info-uri: https://kapi.kakao.com/v2/user/me
+  frontend-redirect-uri: ${KAKAO_FRONTEND_REDIRECT_URI:http://localhost:3000/oauth/callback}
+  logout-uri: https://kauth.kakao.com/oauth/logout
+  logout-redirect-uri: ${KAKAO_LOGOUT_REDIRECT_URI:http://localhost:8080/oauth/kakao/logout}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>JWT 인증 테스트 결과</title>
+<style>
+  body { font-family: 'Courier New', monospace; background: #1e1e1e; color: #d4d4d4; padding: 32px; }
+  h1 { color: #569cd6; font-size: 18px; margin-bottom: 24px; }
+  .section { margin-bottom: 28px; border: 1px solid #3c3c3c; border-radius: 6px; overflow: hidden; }
+  .section-title { background: #2d2d2d; padding: 10px 16px; font-size: 13px; color: #9cdcfe; border-bottom: 1px solid #3c3c3c; }
+  .section-body { padding: 14px 16px; font-size: 12px; line-height: 1.8; }
+  .label { color: #4ec9b0; }
+  .value { color: #ce9178; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-left: 8px; }
+  .badge-200 { background: #1e4620; color: #4caf50; }
+  .badge-201 { background: #1e4620; color: #4caf50; }
+  .badge-401 { background: #4a1e1e; color: #f44336; }
+  .key { color: #9cdcfe; }
+  .highlight { color: #dcdcaa; }
+  .http-only { background: #1e3a5f; color: #569cd6; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-left: 6px; }
+  .cookie-box { background: #252526; border: 1px solid #3c3c3c; border-radius: 4px; padding: 10px 14px; margin-top: 8px; word-break: break-all; }
+  .note { color: #6a9955; font-size: 11px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>Leets 7기 BE 6주차 — Spring Security + JWT 인증/인가 테스트</h1>
+
+<div class="section">
+  <div class="section-title">① POST /auth — 회원가입 <span class="badge badge-201">201 Created</span></div>
+  <div class="section-body">
+    <div><span class="key">Request</span>: <span class="value">{ "email": "demo@leets.kr", "password": "Leets2026!", "username": "데모유저" }</span></div>
+    <div><span class="key">Response</span>: <span class="value">{ "status": "success", "data": { "user_id": 1, "email": "demo@leets.kr", "username": "데모유저" } }</span></div>
+    <div class="note"># 비밀번호는 BCrypt 해시로 저장됨</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">② POST /login — 로그인 <span class="badge badge-200">200 OK</span></div>
+  <div class="section-body">
+    <div><span class="key">Request</span>: <span class="value">{ "email": "demo@leets.kr", "password": "Leets2026!" }</span></div>
+    <div style="margin-top:8px;"><span class="key">Response Body</span>:</div>
+    <div class="cookie-box"><span class="highlight">access_token</span>: <span class="value">eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicm9sZSI6IlVTRVIi...</span></div>
+    <div style="margin-top:8px;"><span class="key">Set-Cookie Header</span>:</div>
+    <div class="cookie-box">
+      refreshToken=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaWF0Ij...<br>
+      Max-Age=1209600 (14일) &nbsp;|&nbsp; Path=/ &nbsp;|&nbsp; <span class="http-only">HttpOnly</span>
+    </div>
+    <div class="note"># RT는 HttpOnly Cookie → JS(document.cookie)로 접근 불가, XSS 차단</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">③ GET /api/v1/posts (토큰 없음) <span class="badge badge-401">401 Unauthorized</span></div>
+  <div class="section-body">
+    <div><span class="key">Response</span>: <span class="value">{ "status": "error", "message": "인증이 필요합니다.", "data": null }</span></div>
+    <div class="note"># Authorization 헤더 없으면 JwtAuthenticationEntryPoint → 401</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">④ GET /api/v1/posts (Bearer AT 포함) <span class="badge badge-200">200 OK</span></div>
+  <div class="section-body">
+    <div><span class="key">Request Header</span>: <span class="value">Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...</span></div>
+    <div><span class="key">Response</span>: <span class="value">{ "status": "success", "data": { "items": [], "page": 0, "size": 10, "total_elements": 0 } }</span></div>
+    <div class="note"># JwtAuthenticationFilter → SecurityContext 설정 → @AuthenticationPrincipal Long userId</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">⑤ POST /reissue (RT Cookie 자동 전송) <span class="badge badge-200">200 OK</span></div>
+  <div class="section-body">
+    <div><span class="key">Cookie 전송</span>: <span class="value">refreshToken=eyJhbGciOiJIUzI1NiJ9... (HttpOnly)</span></div>
+    <div style="margin-top:8px;"><span class="key">Response Body</span>:</div>
+    <div class="cookie-box"><span class="highlight">access_token</span>: <span class="value">eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicm9sZSI6IlVTRVIi...</span> <span style="color:#4ec9b0">(새 AT 발급)</span></div>
+    <div class="note"># RT 서명 검증 + RefreshToken 테이블에서 존재/만료 확인 후 AT 재발급</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">⑥ document.cookie 확인 (HttpOnly 검증)</div>
+  <div class="section-body">
+    <div><span class="key">document.cookie 값</span>: <span class="value" id="cookie-val"></span></div>
+    <div class="note"># HttpOnly Cookie는 JS로 접근 불가 → 빈 문자열 반환 → XSS 공격 차단 확인</div>
+  </div>
+</div>
+
+<script>
+  const el = document.getElementById('cookie-val');
+  const val = document.cookie;
+  el.textContent = '"' + (val || '') + '" (비어 있음 — HttpOnly Cookie는 JS 접근 불가)';
+</script>
+</body>
+</html>
